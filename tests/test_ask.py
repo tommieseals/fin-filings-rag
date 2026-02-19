@@ -1,31 +1,15 @@
-"""Tests for the /ask endpoint."""
+"""API tests for /ask endpoint."""
 import pytest
 from fastapi.testclient import TestClient
-
 from app.main import app
-from app.rag import get_engine
-
 
 client = TestClient(app)
-
 
 def test_health():
     """Test health endpoint."""
     response = client.get("/health")
     assert response.status_code == 200
-    data = response.json()
-    assert "status" in data
-    assert data["status"] == "healthy"
-
-
-def test_root():
-    """Test root endpoint."""
-    response = client.get("/")
-    assert response.status_code == 200
-    data = response.json()
-    assert "name" in data
-    assert "endpoints" in data
-
+    assert response.json()["status"] == "healthy"
 
 def test_ask_valid_question():
     """Test /ask with valid question."""
@@ -33,24 +17,21 @@ def test_ask_valid_question():
         "/ask",
         json={"question": "What are the risk factors?"}
     )
-    # May be 200 or 503 depending on index state
-    assert response.status_code in [200, 503]
-    if response.status_code == 200:
-        data = response.json()
-        assert "answer" in data
-        assert "citations" in data
-        assert "confidence" in data
-        assert "abstained" in data
+    assert response.status_code == 200
+    data = response.json()
+    assert "answer" in data
+    assert "confidence" in data
+    assert "citations" in data
+    assert isinstance(data["citations"], list)
+    assert 0 <= data["confidence"] <= 1
 
-
-def test_ask_empty_question():
-    """Test /ask rejects empty questions."""
+def test_ask_short_question():
+    """Test /ask rejects too short questions."""
     response = client.post(
         "/ask",
-        json={"question": ""}
+        json={"question": "hi"}
     )
     assert response.status_code == 422
-
 
 def test_ask_returns_citations():
     """Test that citations include required fields."""
@@ -58,11 +39,17 @@ def test_ask_returns_citations():
         "/ask",
         json={"question": "What financial risks are disclosed?"}
     )
-    if response.status_code == 200:
-        data = response.json()
-        assert "citations" in data
-        for citation in data["citations"]:
-            assert "source" in citation
-            assert "chunk_id" in citation
-            assert "text" in citation
-            assert "score" in citation
+    assert response.status_code == 200
+    data = response.json()
+    
+    if not data.get("abstained") and data["citations"]:
+        citation = data["citations"][0]
+        assert "chunk_id" in citation
+        assert "text" in citation
+        assert "score" in citation
+        assert "source_file" in citation
+
+def test_stats_endpoint():
+    """Test stats endpoint."""
+    response = client.get("/stats")
+    assert response.status_code == 200

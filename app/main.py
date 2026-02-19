@@ -19,6 +19,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+async def root():
+    """Root endpoint with API info."""
+    return {"name": "SEC Filing RAG API", "version": "1.0.0"}
+
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
@@ -28,19 +33,11 @@ async def ask(request: AskRequest) -> AskResponse:
     try:
         engine = get_engine()
         response = engine.synthesize(request.question)
-        return response
-    except FileNotFoundError:
-        raise HTTPException(status_code=503, detail="Index not initialized")
+        return AskResponse(
+            answer=response["answer"],
+            citations=response["citations"],
+            confidence=response["confidence"],
+            abstained=response["abstained"],
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/stats")
-async def stats():
-    try:
-        engine = get_engine()
-        return {
-            "indexed_chunks": len(engine.documents),
-            "vocabulary_size": len(engine.vectorizer.vocabulary_),
-        }
-    except FileNotFoundError:
-        return {"error": "Index not initialized"}
