@@ -1,0 +1,5 @@
+{"question": "What was the total revenue for the fiscal year?", "expected_keywords": ["revenue", "million", "billion"]}
+{"question": "What are the main risk factors mentioned in the filing?", "expected_keywords": ["risk", "factors"]}
+{"question": "Who is the CEO of the company?", "expected_keywords": ["officer", "executive", "CEO"]}
+{"question": "What is the company's primary business?", "expected_keywords": ["business", "operations", "products"]}
+{"question": "What is the quantum entanglement coefficient of the CEO's cat?", "expect_abstain": true}
