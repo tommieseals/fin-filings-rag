@@ -19,17 +19,40 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 async def root():
     """Root endpoint with API info."""
     return {"name": "SEC Filing RAG API", "version": "1.0.0"}
 
+
 @app.get("/health")
 async def health():
+    """Health check endpoint."""
     return {"status": "healthy"}
+
+
+@app.get("/stats")
+async def stats():
+    """Return index statistics."""
+    try:
+        engine = get_engine()
+        return {
+            "documents_indexed": len(engine.documents) if engine.documents else 0,
+            "index_loaded": engine.vectorizer is not None,
+            "status": "ready"
+        }
+    except FileNotFoundError:
+        return {
+            "documents_indexed": 0,
+            "index_loaded": False,
+            "status": "no_index"
+        }
+
 
 @app.post("/ask", response_model=AskResponse)
 async def ask(request: AskRequest) -> AskResponse:
+    """Query the RAG system."""
     try:
         engine = get_engine()
         response = engine.synthesize(request.question)
